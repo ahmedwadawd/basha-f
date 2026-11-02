@@ -1,0 +1,7 @@
+const ICON={x:'<path d="M6 6l12 12M18 6L6 18"/>',img:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 9"/>',truck:'<path d="M2 6h11v10H2zM13 10h4l3 3v3h-7M6 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z"/>',shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5 4.5-5"/>',snow:'<path d="M12 2v20M3.5 7l17 10M3.5 17l17-10M9 4l3 2 3-2M9 20l3-2 3 2"/>',headset:'<path d="M4 14v-3a8 8 0 0116 0v3M4 14h3v5H4zM17 14h3v5h-3zM20 19c0 2-2 3-5 3"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',cart:'<path d="M3 4h3l2.5 12h9L20 8H7M10 20a1 1 0 100-2 1 1 0 000 2zM17 20a1 1 0 100-2 1 1 0 000 2z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',heart:'<path d="M12 20s-8-5-8-11a4.5 4.5 0 018-2.5A4.5 4.5 0 0120 9c0 6-8 11-8 11z"/>',home:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>',grid:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>'};
+const ic=(n,s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+
+
+const $=id=>document.getElementById(id);
+const ROOT=document.documentElement.dataset.root||"",PAGES=ROOT?"":"pages/";
+addEventListener("offline",()=>toast("لا يوجد اتصال بالإنترنت"));addEventListener("online",()=>toast("عاد الاتصال"));

@@ -1,0 +1,1 @@
+hero.jpg, offer.jpg, cat-meat.jpg, cat-poultry.jpg, cat-burger.jpg, cat-mixed.jpg, cat-fish.jpg, cat-veg.jpg, cat-fries.jpg (اختيارية، تظهر بدائل بدونها)
