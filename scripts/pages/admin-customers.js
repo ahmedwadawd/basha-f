@@ -1,0 +1,45 @@
+// ===== العملاء: كل العملاء / المفضلون / المحظورون / المحذوفون =====
+// الحظر والحذف يُنفَّذان على الخادم (دوال تتحقق من is_admin) ويؤثران على تسجيل الدخول والطلب فعليًا، لا على الأزرار فقط.
+// CU (الحالة) مُعرَّف في admin.js: {q,sort,pg,open,f}
+const CU_SECS=[["all","كل العملاء"],["favorite","المفضلون"],["blocked","المحظورون"],["archived","المحذوفون"]];
+const isAdminRow=c=>c.role==="admin";
+function cuBadges(c){return [isAdminRow(c)?'<span class="bdg">مدير</span>':"",c.is_favorite?'<span class="bdg fav">★ مفضل</span>':"",c.blocked_at?'<span class="bdg bad">محظور</span>':"",c.deleted_at?'<span class="bdg off">محذوف</span>':"",c.email&&c.email_confirmed===false?'<span class="bdg warn" title="لم يؤكد بريده بعد">بريد غير مؤكد</span>':""].join(" ")}
+async function custs(){
+ $("v").innerHTML=LOADING;const tok=CU.tok=(CU.tok||0)+1;
+ let r,cn;try{[r,cn]=await Promise.all([sb.rpc("admin_customer_list",{p_q:CU.q||null,p_sort:CU.sort,p_limit:CUN,p_offset:CU.pg*CUN,p_filter:CU.f}),sb.rpc("admin_customer_counts")])}catch(e){r={error:e};cn={}}
+ if(tok!==CU.tok||tab!=="customers")return;
+ if(!guard(r)){$("v").innerHTML=EMPTY("تعذر تحميل العملاء. أعد المحاولة.");return}
+ const L=r.data||[],tot=L[0]?Number(L[0].total_count):0,n=cn.data||{};window._cu=L;
+ const empty={all:"لا يوجد عملاء مسجلون بعد. يظهر العميل هنا فور إنشائه حسابًا من الموقع.",favorite:"لا يوجد عملاء مفضلون. افتح عميلًا واضغط «★ إضافة للمفضلة».",blocked:"لا يوجد عملاء محظورون.",archived:"لا يوجد عملاء محذوفون."};
+ $("v").innerHTML=`<div class="chips secs" role="tablist" aria-label="أقسام العملاء">${CU_SECS.map(([k,t])=>`<button role="tab" aria-selected="${CU.f==k}" class="${CU.f==k?"on":""}" onclick="cuSec('${k}')">${t} <small>(${n[k]??0})</small></button>`).join("")}</div>
+<div class="toolbar"><label class="grow">بحث (اسم / هاتف / بريد / رقم العميل)<input id="cq" value="${esc(CU.q)}" placeholder="مثال: 0101234 أو C-10001" onkeydown="if(event.key=='Enter')cuSearch()"></label><label>الترتيب<select onchange="CU.sort=this.value;CU.pg=0;custs()">${[["new","الأحدث"],["orders","الأكثر طلبات"],["spent","الأعلى إنفاقًا"],["last","آخر طلب"],["name","الاسم"]].map(([k,t])=>`<option value="${k}" ${CU.sort==k?"selected":""}>${t}</option>`).join("")}</select></label><button class="btn" onclick="cuSearch()">بحث</button><button class="btn g" onclick="cuExport()">تصدير CSV</button></div><div id="cp"></div>
+<div class="box scroll">${L.length?`<table><tr><th>الرقم</th><th>العميل</th><th>التواصل</th><th>العنوان</th><th>الطلبات</th><th>الإنفاق</th><th>انضم</th><th></th></tr>${L.map(c=>`<tr class="${c.blocked_at?"rowbad":""}"><td><span class="cid">${custNo(c.customer_no)}</span></td><td><b>${esc(c.name||"—")}</b> ${cuBadges(c)}<br><small>${esc(c.email||"")}</small></td><td>${c.phone?`<a class="lnk" href="tel:${esc(c.phone)}">${esc(c.phone)}</a>${waLink(c.phone)?` <a class="sm y" target="_blank" rel="noopener" href="${waLink(c.phone)}">واتساب</a>`:""}`:"—"}</td><td>${c.address?`${esc(c.governorate||"")} ${esc(c.area||"")}<br><small>${esc(c.address)}</small>`:'<small>لم يُسجَّل</small>'}</td><td>${c.orders_count}</td><td>${M(c.total_spent)}</td><td><small>${dday(c.created_at)}</small></td><td style="white-space:nowrap"><button class="sm" onclick="cuOpen('${c.id}')">تفاصيل</button></td></tr>`).join("")}</table>`:EMPTY(CU.q?"لا يوجد عملاء مطابقون للبحث.":empty[CU.f])}</div>${pager(tot,CU.pg,CUN,"cuPage")}`;
+ if(CU.open)cuOpen(CU.open)}
+function cuSec(k){CU.f=k;CU.pg=0;CU.open=null;custs()}
+function cuSearch(){CU.q=$("cq").value.trim();CU.pg=0;custs()}
+function cuPage(d){CU.pg+=d;custs()}
+function cuActions(c){if(isAdminRow(c))return'<p class="hint">هذا حساب مدير: لا يمكن حظره أو حذفه من هنا.</p>';
+ if(c.deleted_at)return `<button type="button" class="btn" onclick="cuRestore('${c.id}')">استعادة العميل</button>`;
+ return `<button type="button" class="btn ${c.is_favorite?"g":"y"}" onclick="cuFav('${c.id}',${!c.is_favorite})">${c.is_favorite?"إزالة من المفضلة":"★ إضافة للمفضلة"}</button>
+ <button type="button" class="btn ${c.blocked_at?"ok":"k"}" onclick="cuBlock('${c.id}',${!c.blocked_at})">${c.blocked_at?"إلغاء الحظر":"حظر العميل"}</button><button type="button" class="btn r" onclick="cuDel('${c.id}')">حذف العميل</button>`}
+async function cuOpen(id){const c=(window._cu||[]).find(x=>x.id==id);if(!c){CU.open=null;return}CU.open=id;
+ const o=await sb.from("orders").select("code,status,total_cents,created_at").eq("customer_id",id).order("created_at",{ascending:false}).limit(20);if(!guard(o))return;
+ $("cp").innerHTML=`<div class="panel"><div class="row" style="align-items:flex-start"><div><h3>${esc(c.name||"عميل بلا اسم")} <span class="cid">${custNo(c.customer_no)}</span> ${cuBadges(c)}</h3><small>${esc(c.email||"")} · انضم ${dt(c.created_at)}</small>${c.blocked_at?`<p class="err">محظور منذ ${dt(c.blocked_at)}${c.block_reason?" — السبب: "+esc(c.block_reason):""}</p>`:""}${c.deleted_at?`<p class="err">محذوف (مؤرشف) منذ ${dt(c.deleted_at)} — طلباته محفوظة.</p>`:""}</div><button class="sm" onclick="CU.open=null;$('cp').innerHTML=''" aria-label="إغلاق">${ic("x",16)}</button></div>
+<div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;margin:10px 0">${cuActions(c)}</div>
+<form onsubmit="cuSave(event,'${c.id}')" novalidate style="margin-top:12px"><div class="two"><label>الاسم<input id="ce_name" maxlength="100" value="${esc(c.name)}"></label><label>الموبايل<input id="ce_phone" type="tel" inputmode="numeric" value="${esc(c.phone)}"></label><label>المحافظة${govSel("ce_gov",c.governorate)}</label><label>المنطقة<input id="ce_area" value="${esc(c.area)}"></label></div>
+<label>العنوان<textarea id="ce_addr" maxlength="300">${esc(c.address)}</textarea></label><label>ملاحظات داخلية (لا يراها العميل)<textarea id="ce_notes" maxlength="1000">${esc(c.admin_notes)}</textarea></label><p class="err" id="ce_err" role="alert"></p><button class="btn" id="ce_btn">حفظ التعديلات</button></form>
+<h3 style="margin:16px 0 8px">طلبات العميل (${c.orders_count})</h3>${o.data.length?`<div class="scroll"><table>${o.data.map(x=>`<tr><td>${esc(x.code)}</td><td><small>${dt(x.created_at)}</small></td><td>${M(x.total_cents)}</td><td><span class="stt ${esc(x.status)}">${esc(ORDER_ST[x.status]||x.status)}</span></td></tr>`).join("")}</table></div>`:'<p class="empty" style="padding:10px">لا توجد طلبات مرتبطة بهذا الحساب.</p>'}</div>`;$("cp").scrollIntoView({behavior:"smooth",block:"start"})}
+async function cuSave(e,id){e.preventDefault();$("ce_err").textContent="";const ph=normPhone($("ce_phone").value);if($("ce_phone").value.trim()&&!okPhone(ph))return $("ce_err").textContent="رقم الموبايل غير صحيح";
+ await withBusy($("ce_btn"),async()=>{const r=await sb.rpc("admin_update_customer",{p_id:id,p_name:$("ce_name").value,p_phone:ph,p_gov:$("ce_gov").value,p_area:$("ce_area").value,p_address:$("ce_addr").value,p_notes:$("ce_notes").value});if(guard(r)){toast("تم حفظ بيانات العميل");custs()}})}
+async function cuFav(id,v){const r=await sb.rpc("admin_set_customer_favorite",{p_id:id,p_fav:v});if(guard(r)){toast(v?"أُضيف العميل للمفضلة":"أُزيل من المفضلة");custs()}}
+async function cuBlock(id,block){const c=(window._cu||[]).find(x=>x.id==id)||{};let reason=null;
+ if(block){if(!confirm(`حظر العميل «${c.name||""}»؟\nلن يستطيع تسجيل الدخول أو إنشاء طلبات جديدة (حتى بنفس رقم هاتفه كضيف). طلباته السابقة تبقى كما هي، ويمكنك إلغاء الحظر لاحقًا.`))return;reason=prompt("سبب الحظر (اختياري — لا يراه العميل):","");if(reason===null)return}
+ else if(!confirm("إلغاء حظر هذا العميل؟"))return;
+ const r=await sb.rpc("admin_set_customer_block",{p_id:id,p_blocked:block,p_reason:reason});if(guard(r)){toast(block?"تم حظر العميل":"تم إلغاء الحظر");custs()}}
+async function cuDel(id){const c=(window._cu||[]).find(x=>x.id==id)||{};
+ const msg=c.orders_count>0?`«${c.name||"العميل"}» لديه ${c.orders_count} طلب.\nسيُحذف من القوائم ويُمنع من الدخول، لكن تبقى طلباته وسجلاته المالية محفوظة بالكامل (حذف منطقي) ويمكنك استعادته لاحقًا.\nمتابعة؟`:"حذف حساب العميل نهائيًا؟ لا توجد طلبات مرتبطة به. لا يمكن التراجع.";
+ if(!confirm(msg))return;const r=await sb.rpc("admin_delete_customer",{p_id:id});if(guard(r)){CU.open=null;toast(r.data=="archived"?"تم حذف العميل (الطلبات محفوظة)":"تم حذف العميل نهائيًا");custs()}}
+async function cuRestore(id){if(!confirm("استعادة هذا العميل؟"))return;const r=await sb.rpc("admin_restore_customer",{p_id:id});if(guard(r)){CU.open=null;toast("تمت استعادة العميل");custs()}}
+async function cuExport(){toast("جارٍ تجهيز الملف…");let all=[],off=0;
+ for(;;){const r=await sb.rpc("admin_customer_list",{p_q:CU.q||null,p_sort:CU.sort,p_limit:200,p_offset:off,p_filter:CU.f});if(!guard(r))return;const L=r.data||[];all=all.concat(L);off+=200;if(L.length<200||all.length>=5000)break}
+ downloadCSV("customers.csv",[["رقم العميل","الاسم","الهاتف","البريد","المحافظة","المنطقة","العنوان","عدد الطلبات","إجمالي الإنفاق","مفضل","محظور","تاريخ الانضمام"],...all.map(c=>[custNo(c.customer_no),c.name,c.phone,c.email,c.governorate,c.area,c.address,c.orders_count,c.total_spent/100,c.is_favorite?"نعم":"",c.blocked_at?"نعم":"",(c.created_at||"").slice(0,10)])]);toast("تم تصدير "+all.length+" عميل")}
