@@ -6,7 +6,7 @@ const GOVS=["الإسكندرية","القاهرة","الجيزة","البحير
 const ORDER_ST={pending:"جديد",confirmed:"مؤكد",preparing:"قيد التجهيز",out_for_delivery:"في الطريق",delivered:"تم التسليم",cancelled:"ملغي"};
 // ===== إعدادات المتجر: عدّل هنا (أو من admin.html) =====
 const DEF_CFG={name:"BASHA FROZEN FOOD",description:"متجر متخصص في اللحوم والدواجن والمجمدات. جودة وثقة وتوصيل لحد باب البيت.",
-whatsapp:"20XXXXXXXXXX", /* ضع رقم واتساب المتجر الحقيقي هنا (بدون +) */
+whatsapp:"201279839845", /* ضع رقم واتساب المتجر الحقيقي هنا (بدون +) */
 phone:"",address:"",facebook:"",instagram:"",currency:"ج.م",deliveryFee:30,minimumOrder:0,freeDeliveryAbove:500,
 heroImage:"assets/images/hero.jpg",offerImage:"assets/images/offer.jpg",policies:[], /* [["عنوان","نص"]] سياسات الإرجاع/التوصيل: أضفها بنصك الفعلي */
 payments:"الدفع عند الاستلام",
